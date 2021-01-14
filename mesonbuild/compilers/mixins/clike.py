@@ -33,9 +33,10 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
-from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
+from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker, PosixDynamicLinkerMixin
 from ...mesonlib import LibType
 from ...coredata import OptionKey
+from ...scripts import depfixer
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
@@ -1113,6 +1114,10 @@ class CLikeCompiler(Compiler):
                 trial = self._get_file_from_list(env, trials)
                 if not trial:
                     continue
+                if isinstance(self.linker, PosixDynamicLinkerMixin):
+                    if not self.info.is_cygwin() and not self.info.is_windows() and not self.info.is_darwin():
+                        if depfixer.is_elf_shared_library_without_soname(trial.as_posix()):
+                            return ['-L' + trial.parent.as_posix(), '-l' + libname]
                 return [trial.as_posix()]
         return None
 
